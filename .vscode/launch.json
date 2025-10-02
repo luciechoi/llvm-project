@@ -1,0 +1,19 @@
+{
+  "version": "0.2.0",
+  "configurations": [
+    {
+      "name": "Launch clang-dxc",
+      "type": "cppdbg",
+      "request": "launch",
+      "program": "${workspaceFolder}/build-debug/bin/clang-dxc",
+      "args": [
+        "${workspaceFolder}/issues/asdouble.hlsl",
+        "-T",
+        "cs_6_8",
+        "-spirv"
+      ],
+      "cwd": "${workspaceFolder}",
+      "stopAtEntry": false
+    }
+  ]
+}
