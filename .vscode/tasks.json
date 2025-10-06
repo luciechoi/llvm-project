@@ -20,7 +20,11 @@
       "args": [
         "-rf",
         "~/llvm-project/build-debug/"
-      ]
+      ],
+      "group": {
+        "kind": "build",
+        "isDefault": false
+      }
     },
     {
       "label": "generate build",
@@ -48,22 +52,89 @@
       "label": "build",
       "type": "shell",
       "command": "cd ~/llvm-project/build-debug && ninja",
-      "args": [],
+      "args": []
     },
     {
       "label": "link paths",
       "type": "shell",
       "command": "cd ~/llvm-project/build-debug && ln -s clang clang-dxc",
       "args": [],
+      "group": {
+        "kind": "build",
+        "isDefault": false
+      }
     },
     {
       "label": "CMake: BUILD (Debug)",
-      "dependsOn": ["generate build", "build", "link paths"],
+      "dependsOn": ["generate build", "build"],
       "dependsOrder": "sequence",
       "group": {
         "kind": "build",
         "isDefault": true
       }
+    },
+    {
+      "label": "run clang-dxc",
+      "type": "shell",
+      "command": "~/llvm-project/build-debug/bin/clang-dxc",
+      "args": [
+        "${input:hlslFile}",
+        "-T", "cs_6_8",
+        "-spirv",
+        ">",
+        "${input:outputFile}",
+        "2>&1"
+      ],
+      "group": {
+        "kind": "test"
+      }
+    },
+    {
+      "label": "run clang-dxc and emit llvm",
+      "type": "shell",
+      "command": "~/llvm-project/build-debug/bin/clang-dxc",
+      "args": [
+        "${input:hlslFile}",
+        "-T", "cs_6_8",
+        "-spirv",
+        "-Xclang", "-emit-llvm",
+        ">",
+        "${input:outputFile}",
+        "2>&1"
+      ],
+      "group": {
+        "kind": "test"
+      }
+    },
+    {
+      "label": "run clang-dxc and print all passes",
+      "type": "shell",
+      "command": "~/llvm-project/build-debug/bin/clang-dxc",
+      "args": [
+        "${input:hlslFile}",
+        "-T", "cs_6_8",
+        "-spirv",
+        "-mllvm", "-print-before-all",
+        "-mllvm", "--debug-only=spirv-module-analysis",
+        ">", "${input:outputFile}", "2>&1"
+      ],
+      "group": {
+        "kind": "test"
+      }
+    },
+  ],
+  "inputs": [
+    {
+      "type": "promptString",
+      "id": "hlslFile",
+      "description": "Path to your hlsl file to test",
+      "default": ""
+    },
+    {
+      "type": "promptString",
+      "id": "outputFile",
+      "description": "Path to your output file",
+      "default": ""
     }
   ]
 }
