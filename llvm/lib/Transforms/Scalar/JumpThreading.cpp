@@ -240,6 +240,26 @@ PreservedAnalyses JumpThreadingPass::run(Function &F,
   // Jump Threading has no sense for the targets with divergent CF
   if (TTI.hasBranchDivergence(&F))
     return PreservedAnalyses::all();
+
+  for (BasicBlock &BB : F) {
+    for (Instruction &I : BB) {
+      if (isa<ConvergenceControlInst>(I)) {
+        LLVM_DEBUG(
+            dbgs()
+            << "Skipping CFG simplification for function '" << F.getName()
+            << "' because it contains convergence control instructions.\n");
+        return PreservedAnalyses::all();
+      }
+      if (auto *CB = dyn_cast<CallBase>(&I))
+        if (CB->isConvergent() && CB->getConvergenceControlToken() != nullptr) {
+          LLVM_DEBUG(dbgs() << "Skipping CFG simplification for function '"
+                            << F.getName()
+                            << "' because it contains convergent calls with "
+                               "control tokens.\n");
+          return PreservedAnalyses::all();
+        }
+    }
+  }
   auto &TLI = AM.getResult<TargetLibraryAnalysis>(F);
   auto &LVI = AM.getResult<LazyValueAnalysis>(F);
   auto &AA = AM.getResult<AAManager>(F);

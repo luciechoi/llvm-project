@@ -3618,6 +3618,16 @@ static bool unswitchLoop(Loop &L, DominatorTree &DT, LoopInfo &LI,
   if (!L.isLoopSimplifyForm())
     return false;
 
+  for (auto &BB : L.blocks()) {
+    for (auto &I : *BB) {
+      if (isa<ConvergenceControlInst>(I))
+        return false;
+      if (auto *CB = dyn_cast<CallBase>(&I))
+        if (CB->isConvergent() && CB->getConvergenceControlToken() != nullptr)
+          return false;
+    }
+  }
+
   // Try trivial unswitch first before loop over other basic blocks in the loop.
   if (Trivial && unswitchAllTrivialConditions(L, DT, LI, SE, MSSAU)) {
     // If we unswitched successfully we will want to clean up the loop before

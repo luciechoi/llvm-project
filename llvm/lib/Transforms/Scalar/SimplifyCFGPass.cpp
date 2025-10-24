@@ -304,6 +304,27 @@ static bool simplifyFunctionCFG(Function &F, const TargetTransformInfo &TTI,
   assert((!RequireAndPreserveDomTree ||
           (DT && DT->verify(DominatorTree::VerificationLevel::Full))) &&
          "Original domtree is invalid?");
+  // Check if the function has control conversion token inside that prevent CFG
+  // simplification.
+  for (BasicBlock &BB : F) {
+    for (Instruction &I : BB) {
+      if (isa<ConvergenceControlInst>(I)) {
+        LLVM_DEBUG(
+            dbgs()
+            << "Skipping CFG simplification for function '" << F.getName()
+            << "' because it contains convergence control instructions.\n");
+        return false;
+      }
+      if (auto *CB = dyn_cast<CallBase>(&I))
+        if (CB->isConvergent() && CB->getConvergenceControlToken() != nullptr) {
+          LLVM_DEBUG(dbgs() << "Skipping CFG simplification for function '"
+                            << F.getName()
+                            << "' because it contains convergent calls with "
+                               "control tokens.\n");
+          return false;
+        }
+    }
+  }
 
   bool Changed = simplifyFunctionCFGImpl(F, TTI, DT, Options);
 
