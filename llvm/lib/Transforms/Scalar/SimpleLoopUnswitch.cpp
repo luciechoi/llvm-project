@@ -529,6 +529,25 @@ static bool unswitchTrivialBranch(Loop &L, BranchInst &BI, DominatorTree &DT,
 
   Value *Cond = skipTrivialSelect(BI.getCondition());
   if (L.isLoopInvariant(Cond)) {
+    // Skip if the condition body contains convergence control instructions.
+    BasicBlock *BB = BI.getSuccessor(0);
+    auto blocks = std::vector<BasicBlock *>{BB};
+    while (!blocks.empty()) {
+      BasicBlock *CurrentBB = blocks.back();
+      blocks.pop_back();
+      for (Instruction &I : *CurrentBB) {
+        if (isa<ConvergenceControlInst>(&I)) {
+          LLVM_DEBUG(dbgs() << "   Cannot unswitch because of convergent "
+                               "control instruction: "
+                           << I << "\n");
+          return false;
+        }
+      }
+      for (BasicBlock *SuccBB : successors(CurrentBB)) {
+        if (L.contains(SuccBB))
+          blocks.push_back(SuccBB);
+      }
+    }
     Invariants.push_back(Cond);
     FullUnswitch = true;
   } else {
